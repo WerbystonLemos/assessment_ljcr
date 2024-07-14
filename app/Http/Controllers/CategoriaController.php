@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\Categoria;
 use Illuminate\Http\Request;
 
 class CategoriaController extends Controller
@@ -10,9 +11,9 @@ class CategoriaController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index() // @audit-ok
     {
-        return json_encode(['msg' => 'Criar RN para mostrar todas Categorias' ]);
+        return Categoria::all();
     }
 
     /**
@@ -26,17 +27,33 @@ class CategoriaController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(Request $request) // @audit-ok
     {
-        return json_encode(['id' => $request->id, 'request' => $request, 'msg' => 'Criar RN para salvar Categoria' ]);
+        if( ! $request->descricao )
+        {
+            return response()->json(["success"=>false, "msg"=> "Campo descricao obrigatório"], 400);
+        }
+
+        if( gettype($request->descricao) != 'string' )
+        {
+            return response()->json(["success"=>false, "msg"=> "Tipo do valor inválido! Certifique-se de estar enviando um string e tente novamente"], 400);
+        }
+
+        $categoria              = new Categoria;
+        $categoria->descricao   = $request->descricao;
+
+        if( $categoria->save() )
+        {
+            return response()->json(["success"=>true, "msg"=> "Categoria criada com sucesso"], 201);
+        }
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(string $id) // @audit-ok
     {
-        return json_encode(['id' => $id, 'msg' => 'Criar RN para mostrar!']);
+        return Categoria::find($id);
     }
 
     /**
@@ -52,14 +69,44 @@ class CategoriaController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+
+        if( ! $request->descricao )
+        {
+            return response()->json(["success"=>false, "msg"=> "Campo descricao obrigatório"], 400);
+        }
+
+        if( gettype($request->descricao) != 'string' )
+        {
+            return response()->json(["success"=>false, "msg"=> "Tipo do valor inválido! Certifique-se de estar enviando um string e tente novamente"], 400);
+        }
+
+        $categoria = Categoria::find($id);
+        $categoria->descricao = $request->descricao;
+
+        if( ! $categoria->save() )
+        {
+            return response()->json(['success' => false, 'msg' => 'Erro ao editar categoria'],400);
+        }
+        return response()->json(['success' => true, 'msg' => 'Categoria editada com sucesso'],200);
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(string $id) // @audit-ok
     {
-        return json_encode(['id' => $id, 'msg' => 'Criar RN para delete!']);
+        try
+        {
+            if( !Categoria::destroy($id) )
+            {
+                throw new \Exception("Erro ao deletar.");
+            }
+
+            return response()->json(['success' => true, 'msg' => 'Categoria deletada com sucesso.'], 200);
+        }
+        catch (\Exception $th)
+        {
+            return response()->json(['success' => false, 'msg' => $th->getMessage()], 400);
+        }
     }
 }
